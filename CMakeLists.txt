@@ -58,7 +58,6 @@ else()
   endif()
 endif()
 
-
 include(CTest)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON) # works for Unix MakeFiles (also ninja)
 set(BUILD_SHARED_LIBS OFF)
@@ -143,7 +142,6 @@ include(find_stack_protector_strong)
 include(maidsafe_find_just_thread)
 include(maidsafe_find_python)
 include(maidsafe_find_git)
-include(maidsafe_find_openmp)
 
 
 if(APPLE)
@@ -232,4 +230,5 @@ if(MSVC OR XCODE)
 endif()
 
 
-include(package)
+include(add_installers)
+# include(package)
