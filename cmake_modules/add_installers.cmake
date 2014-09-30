@@ -97,6 +97,8 @@ foreach(Type ${Types})
                         -DBoostSourceDir="${BoostSourceDir}"
                         -DConfig=$<CONFIGURATION>
                         -DCMAKE_SYSTEM_VERSION="${CMAKE_SYSTEM_VERSION}"
+                        $<$<STREQUAL:${Type},Farmer>:-DVLOGGING=${VLOGGING}>
+                        $<$<STREQUAL:${Type},Farmer>:-DVLOG_SESSION_ID=${VLOG_SESSION_ID}>
                         -P "${CMAKE_SOURCE_DIR}/cmake_modules/${InstallerScriptName}"
                         -V)
   set_target_properties(${${Type}Name} PROPERTIES FOLDER "MaidSafe/Installers")

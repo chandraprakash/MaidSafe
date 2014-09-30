@@ -21,9 +21,18 @@
 #==================================================================================================#
 
 
-# Assert that configuration is Release for all but DevDebug target
-if(NOT "${Config}" STREQUAL Release AND NOT "${TargetType}" STREQUAL "DevDebug")
+# Assert that configuration is Release for all
+if(NOT "${Config}" STREQUAL Release)
   message(FATAL_ERROR "Invalid build configuration.  ${TargetName} is only availale for Release builds.")
+endif()
+
+message("VLOGGING - ${VLOGGING}")
+message("VLOG_SESSION_ID - ${VLOG_SESSION_ID}")
+
+if("${TargetType}" STREQUAL Farmer AND VLOGGING AND NOT VLOG_SESSION_ID)
+  set(ErrorMessage "\n\nMissing VLOG_SESSION_ID. Please provide a Session id with \n    cmake . -DVLOG_SESSION_ID=<session id from visualiser>\n")
+  set(ErrorMessage "${ErrorMessage}VLOG_SESSION_ID is required with VLOGGING ON. To disable VLOGGING run \n    cmake . -DVLOGGING=OFF\n\n")
+  message(FATAL_ERROR "Failed - ${ErrorMessage}")
 endif()
 
 # Set up various common values and flags
