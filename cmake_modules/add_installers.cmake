@@ -32,7 +32,11 @@ if(NOT CMAKE_CONFIGURATION_TYPES AND NOT ${CMAKE_BUILD_TYPE} STREQUAL Release)
 endif()
 
 # Installer Types
-set(Types Farmer Dev Utilities)
+set(Types Farmer Dev)
+
+if(NOT PACKAGE_BUILD)
+  list(APPEND Types Utilities)
+endif()
 
 include(monolithic_lib)
 
