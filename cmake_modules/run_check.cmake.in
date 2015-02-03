@@ -19,28 +19,30 @@
 #  use of the MaidSafe Software.                                                                   #
 #                                                                                                  #
 #==================================================================================================#
+#                                                                                                  #
+#  Module used to run all tests on single submodules without submitting results to the dashboard.  #
+#                                                                                                  #
+#==================================================================================================#
 
 
-file(GLOB Libs RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/*")
-foreach(Lib ${Libs})
-  if(IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/${Lib}")
-    if(NOT CMAKE_VERSION VERSION_LESS "3.0")
-      add_library(${Lib} INTERFACE)
-      ms_target_include_system_dirs(${Lib} INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}")
-    endif()
+set(CTEST_CONFIGURATION_TYPE @CTEST_CONFIGURATION_TYPE@)
+set(CTEST_CMAKE_GENERATOR "@CMAKE_GENERATOR@")
+set(CMAKE_CXX_COMPILER_ID "@CMAKE_CXX_COMPILER_ID@")
+set(CMAKE_CXX_COMPILER_VERSION "@CMAKE_CXX_COMPILER_VERSION@")
+set(CTEST_CMAKE_COMMAND "@CMAKE_COMMAND@")
+set(CTEST_SOURCE_DIRECTORY "@CMAKE_SOURCE_DIR@")
+set(CTEST_BINARY_DIRECTORY "@CMAKE_BINARY_DIR@")
 
-    # For multi-config IDEs, add custom target to make library's files visible
-    if(CMAKE_CONFIGURATION_TYPES)
-      file(GLOB_RECURSE GlobbedSrcs "${CMAKE_CURRENT_SOURCE_DIR}/${Lib}/*.h" "${CMAKE_CURRENT_SOURCE_DIR}/${Lib}/*.hpp" "${CMAKE_CURRENT_SOURCE_DIR}/${Lib}/*.ipp")
-      ms_underscores_to_camel_case(${Lib} CamelCaseLib)
-      add_custom_target(${CamelCaseLib}Files
-          COMMENT "NOTE: This is not a target which can be built; just a list of headers for ${CamelCaseLib}."
-          SOURCES ${GlobbedSrcs})
-      set_target_properties(${CamelCaseLib}Files PROPERTIES FOLDER "Third Party/${CamelCaseLib}")
-    endif()
-  endif()
-endforeach()
+# Avoid non-ascii characters in tool output.
+set(ENV{LC_ALL} C)
 
-if(NOT CMAKE_VERSION VERSION_LESS "3.0")
-  target_link_libraries(asio INTERFACE ${BoostCoroutineLibs} ${BoostContextLibs} ${BoostSystemLibs})
+ctest_start(Check)
+ctest_configure(RETURN_VALUE ReturnCode)
+if(NOT ReturnCode EQUAL "0")
+  message(FATAL_ERROR "Failed to configure @CamelCaseProjectName@.")
 endif()
+ctest_build(TARGET All@CamelCaseProjectName@ RETURN_VALUE ReturnCode NUMBER_ERRORS ErrorCount)
+if(NOT ReturnCode EQUAL "0" OR NOT ErrorCount EQUAL "0")
+  message(FATAL_ERROR "Failed to build @CamelCaseProjectName@.")
+endif()
+ctest_test(INCLUDE_LABEL @CamelCaseProjectName@$)

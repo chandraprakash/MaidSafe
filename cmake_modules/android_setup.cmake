@@ -1,6 +1,6 @@
 #==================================================================================================#
 #                                                                                                  #
-#  Copyright 2013 MaidSafe.net limited                                                             #
+#  Copyright 2014 MaidSafe.net limited                                                             #
 #                                                                                                  #
 #  This MaidSafe Software is licensed to you under (1) the MaidSafe.net Commercial License,        #
 #  version 1.0 or later, or (2) The General Public License (GPL), version 3, depending on which    #
@@ -20,43 +20,52 @@
 #                                                                                                  #
 #==================================================================================================#
 #                                                                                                  #
-#  Script used to run Continuous Integration tests on all submodules of MaidSafe.                  #
-#                                                                                                  #
-@Documentation@#
-#                                                                                                  #
-#  By default, all test types other than Experimental run against 'next' branch for the super-     #
-#  project and all submodules.  To change them all to run against a different branch, set the      #
-#  variable BRANCH using '-D' command line argument.                                               #
-#                                                                                                  #
-#  Example usage: From MaidSafe build dir, run:                                                    #
-#    ctest -S CI_Continuous_Release.cmake                                                          #
-#    ctest -S CI_Nightly_Debug.cmake -DBRANCH=master                                               #
+#  Module used to create android setup for each project                                            #
 #                                                                                                  #
 #==================================================================================================#
 
-
-set(DashboardModel @DashType@)
-set(MachineType @MachineType@)
-set(TargetPlatform @TargetPlatform@)
-set(UsingMsBuild @UsingMsBuild@)
-set(CTEST_CONFIGURATION_TYPE @TestConfType@)
-set(CTEST_SITE "@ThisSite@")
-set(CTEST_CMAKE_GENERATOR "@CMAKE_GENERATOR@")
-set(CMAKE_C_COMPILER "@CMAKE_C_COMPILER@")
-set(CMAKE_CXX_COMPILER "@CMAKE_CXX_COMPILER@")
-set(CMAKE_CXX_COMPILER_ID "@CMAKE_CXX_COMPILER_ID@")
-set(CMAKE_CXX_COMPILER_VERSION "@CMAKE_CXX_COMPILER_VERSION@")
-set(CTEST_CMAKE_COMMAND "@CMAKE_COMMAND@")
-# If the build tool is "make", CTest invokes this using "make -i" which ignores errors and causes
-# failing builds to appear to succeed.  Therefore we remove the "-i" arg here.
-string(REGEX MATCH "/make$" IsMake "${CMAKE_MAKE_PROGRAM}")
-if(IsMake)
-  set(PathOfMake "${CMAKE_MAKE_PROGRAM}")
+# Disable android builds for any platform but linux
+if(MSVC OR APPLE)
+  message(FATAL_ERROR "Android builds are currently not supported in this platform")
 endif()
-set(CTEST_GIT_COMMAND "@Git_EXECUTABLE@")
-set(CTEST_PYTHON_EXECUTABLE "@PYTHON_EXECUTABLE@")
-set(CTEST_SOURCE_DIRECTORY "@CMAKE_SOURCE_DIR@")
-set(CTEST_BINARY_DIRECTORY "@CMAKE_BINARY_DIR@/build_CI_@DashType@_@TestConfType@")
-set(ExtraConfigureArgs "@CMakeArgs@;-DRUNNING_AS_CTEST_SCRIPT=TRUE;-DWEEKLY=@IsWeekly@")
 
-include("@CMAKE_BINARY_DIR@/ContinuousIntegration/run_ci.cmake")
+if(NOT ANDROID_NDK_TOOLCHAIN_ROOT)
+  set(ErrorMessage "\n\nCan't find ANDROID_NDK_TOOLCHAIN_ROOT. ")
+  set(ErrorMessage "${ErrorMessage}To set it, run:\n")
+  set(ErrorMessage "${ErrorMessage}    cmake . -DANDROID_NDK_TOOLCHAIN_ROOT=\"<path to ndk toolchain>\"\n\n")
+  message(FATAL_ERROR "${ErrorMessage}")
+endif()
+
+function(get_android_api_version_from_file File ApiLevel)
+  if(EXISTS "${File}")
+    file(STRINGS "${File}" AndroidVersionLine REGEX "#define __ANDROID_API__")
+    string(REGEX MATCH "[0-9]+" MatchedVersion "${AndroidVersionLine}")
+    if(MatchedVersion)
+      set(${ApiLevel} ${MatchedVersion} PARENT_SCOPE)
+    else()
+      unset(${ApiLevel} PARENT_SCOPE)
+    endif()
+  endif()
+endfunction()
+
+set(CMAKE_C_COMPILER "${ANDROID_NDK_TOOLCHAIN_ROOT}/bin/arm-linux-androideabi-gcc")
+set(CMAKE_CXX_COMPILER "${ANDROID_NDK_TOOLCHAIN_ROOT}/bin/arm-linux-androideabi-g++")
+
+macro(ms_android_setup_flags)
+  get_android_api_version_from_file("${ANDROID_NDK_TOOLCHAIN_ROOT}/sysroot/usr/include/android/api-level.h" AndroidApiLevel)
+  string(REGEX REPLACE "([0-9]\\.[0-9]).*" "\\1" AndroidGccVersion "${CMAKE_CXX_COMPILER_VERSION}")
+
+  set(ExeLinkerFlags "-L${ANDROID_NDK_TOOLCHAIN_ROOT}/arm-linux-androideabi/lib/armv7-a -lstdc++")
+
+  if(NOT AndroidApiLevel LESS 16)
+    set(PlatformFlags "-fPIE")
+    set(ExeLinkerFlags "${ExeLinkerFlags} -pie -rdynamic")
+  endif()
+
+  set(PLATFORM_PREFIX "${ANDROID_NDK_TOOLCHAIN_ROOT}/sysroot")
+  set(PLATFORM_FLAGS "${PlatformFlags} -fPIC -Wno-psabi --sysroot=${PLATFORM_PREFIX}")
+  set(CMAKE_C_FLAGS "${PLATFORM_FLAGS} -march=armv7-a -mfloat-abi=softfp -mfpu=neon")
+  set(CMAKE_CXX_FLAGS "${PLATFORM_FLAGS} -march=armv7-a -mfloat-abi=softfp -mfpu=neon")
+  set(CMAKE_EXE_LINKER_FLAGS "${ExeLinkerFlags}")
+  set(CMAKE_SHARED_LINKER_FLAGS "-Wl,--fix-cortex-a8")
+endmacro()

@@ -52,7 +52,17 @@ if(CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR OR
 endif()
 
 
+# Setup android build if required
+if(ANDROID_BUILD)
+  include("${CMAKE_SOURCE_DIR}/cmake_modules/android_setup.cmake")
+endif()
+
+
 project(maidsafe)
+if(ANDROID_BUILD)
+  ms_android_setup_flags()
+endif()
+
 if(CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_CONFIGURATION_TYPES ${CMAKE_CONFIGURATION_TYPES} ReleaseNoInline CACHE INTERNAL "" FORCE)
 else()
@@ -84,7 +94,8 @@ set(SubModules
       vault
       vault_manager
       drive
-      api)
+      api
+      launcher)
 # Set all submodules' source dir before calling add_subdirectory to avoid
 # having to run CMake twice in a clean build tree.
 foreach(SubModule ${SubModules})
@@ -115,7 +126,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 # Include helper functions, check compiler version, and get target platform details
 include(utils)
-extra_platforms()
+ms_extra_platforms()
 ms_check_compiler()
 ms_get_target_platform()
 ms_get_target_architecture()
@@ -247,4 +258,3 @@ endif()
 
 
 include(add_installers)
-# include(package)

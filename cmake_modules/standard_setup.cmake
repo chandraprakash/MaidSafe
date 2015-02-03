@@ -28,7 +28,10 @@
 ms_check_compiler()
 ms_underscores_to_camel_case(${PROJECT_NAME} CamelCaseProjectName)
 
-if(NOT PROJECT_NAME STREQUAL "Cryptopp" AND NOT PROJECT_NAME STREQUAL "sqlite" AND NOT PROJECT_NAME STREQUAL "network_viewer")
+if(NOT PROJECT_NAME STREQUAL "Cryptopp" AND
+   NOT PROJECT_NAME STREQUAL "sqlite" AND
+   NOT PROJECT_NAME STREQUAL "network_viewer" AND
+   NOT PROJECT_NAME STREQUAL "launcher_ui")
   ms_get_branch_and_commit(Branch Commit)
   set(Msg "Configuring MaidSafe ${CamelCaseProjectName} project on ${Branch} at commit ${Commit}")
   string(REGEX REPLACE . "-" Underscore ${Msg})
@@ -57,11 +60,6 @@ endif()
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 
-set(CMAKE_DEBUG_POSTFIX -d)
-set(CMAKE_RELWITHDEBINFO_POSTFIX -rwdi)
-set(CMAKE_MINSIZEREL_POSTFIX -msr)
-set(CMAKE_RELEASENOINLINE_POSTFIX -rni)
-
 if(UNIX)
   set(CMAKE_INCLUDE_SYSTEM_FLAG_C "-isystem ")
   set(CMAKE_INCLUDE_SYSTEM_FLAG_CXX "-isystem ")
@@ -74,6 +72,7 @@ set(CMAKE_INCLUDE_DIRECTORIES_PROJECT_BEFORE ON)
 include(check_licenses)
 include(utils)
 ms_check_licenses()
+ms_set_postfixes()
 
 
 # All other libraries search
@@ -82,7 +81,10 @@ if(UNIX)
   set(CMAKE_THREAD_PREFER_PTHREAD true)
   find_package(Threads REQUIRED)
   if(NOT APPLE)
-    set(SYS_LIB ${CMAKE_THREAD_LIBS_INIT} rt)
+    if(NOT ANDROID_BUILD)
+      set(RtLibrary rt)
+    endif()
+    set(SYS_LIB ${CMAKE_THREAD_LIBS_INIT} ${RtLibrary})
   endif()
 endif()
 
